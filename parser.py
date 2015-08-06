@@ -51,11 +51,17 @@ def import_collection(collection):
         new_collection = api.create_collection(collection)
         return new_collection['id']
     else:
-        print('updating collection: {0}', collection)
+        print('updating collection:', collection)
         return external_collection['id']
 
 def import_video(video):
-    return api.create_video(video)
+    external_video = api.fetch_video_by_external_id(video['externalId'])
+    if external_video is None:
+        print('creating video:', video)
+        return api.create_video(video)
+    else:
+        print('video already existed, doing nothing...')
+        return None
 
 # main():
 try:
