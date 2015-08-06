@@ -5,44 +5,72 @@ import bs4 as bs
 
 from oz_core_api import OZCoreApi
 
-EPG_URL = 'http://muninn.ruv.is/files/rstiming/ruv/';
-AS_RUN_URL = '' # TODO: This.
+EPG_URL = 'http://muninn.ruv.is/files/rs/ruv/';
+AS_RUN_URL = 'http://muninn.ruv.is/files/rstiming/ruv/';
 
-api = OZCoreApi('9f5d3f4900000f5bc8f73db9d677c48478bc09cb', 'f593a7e8-a78c-495b-81eb-d54b66ad8e72')
+api = OZCoreApi('9f5d3f4900000f5bc8f73db9d677c48478bc09cb', '9f16f362-abad-4042-9e26-a69759347bd9')
+
+def import_as_run():
+    print('> importing RUV AS-RUN from:', AS_RUN_URL)
+    r = requests.get(AS_RUN_URL)
+    if r.status_code is not 200:
+        raise Exception('Unable to fetch EPG from RUV, status was: {0}'.format(r.status_code))
+    soup = bs.BeautifulSoup(r.content, 'xml')
+    events = soup.findAll('event')
+    print('> found {0} as run items'.format(len(events)))
+    for event in events:
+        collection_id = None
+        materialIdentifier = event.find('material-identifier').text
+        if materialIdentifier:
+            # Get rid of leading zero which RUV prepends to the "material identifier".
+            serieId = str(int(materialIdentifier.split('-')[0]))
+            collection_id = import_collection({
+                'externalId': 'ruv_' + serieId,
+                'type': 'series', # TODO: You shouldn't need to do this.
+                'name': event.title.text
+            })
+
+        # Create the video:
+        import_video({
+            'videoType': 'recording',
+            'title': event.title.text,
+            'externalId': 'ruv_' + event.id.text,
+            'collectionId': collection_id
+        })
 
 def import_epg():
+    print('> importing RUV EPG from:', EPG_URL)
     r = requests.get(EPG_URL)
-    if r.status_code is 200:
-        soup = bs.BeautifulSoup(r.content, 'xml')
-        events = soup.findAll('event')
-        print('> found {0} events'.format(len(events)))
-        for event in events:
-            # For some reason RUV declares a "materialIdentifier" which is a
-            # combination of serieId and episodeNumber so we have to parse that.
-            materialIdentifier = event.find('material-identifier').text
-            collection_id = None
-            if materialIdentifier:
-                # Get rid of leading zero.
-                serieId = str(int(materialIdentifier.split('-')[0]))
-
-                # Populate the collection object
-                collection = {
-                    'externalId': 'ruv_' + serieId,
-                    'type': 'series', # TODO: You shouldn't need to do this.
-                    'name': event.title.text
-                }
-                collection_id = import_collection(collection)
-                print('collection_id:', collection_id)
-
-            # Create the video:
-            video = {
-                'title': event.title.text,
-                'externalId': 'ruv_' + event.id.text,
-                'collectionId': collection_id
-            }
-            import_video(video)
-    else:
+    if r.status_code is not 200:
         raise Exception('Unable to fetch EPG from RUV, status was: {0}'.format(r.status_code))
+    soup = bs.BeautifulSoup(r.content, 'xml')
+    events = soup.findAll('event')
+    print('> found {0} scheduled items'.format(len(events)))
+    for event in events:
+        # For some reason RUV declares a "materialIdentifier" which is a
+        # combination of serieId and episodeNumber so we have to parse that.
+        materialIdentifier = event.find('material-identifier').text
+        collection_id = None
+        if materialIdentifier:
+            # Get rid of leading zero.
+            serieId = str(int(materialIdentifier.split('-')[0]))
+
+            # Populate the collection object
+            collection = {
+                'externalId': 'ruv_' + serieId,
+                'type': 'series', # TODO: You shouldn't need to do this.
+                'name': event.title.text
+            }
+            collection_id = import_collection(collection)
+            print('collection_id:', collection_id)
+
+        # Create the video:
+        import_video({
+            'title': event.title.text,
+            'externalId': 'ruv_' + event.id.text,
+            'collectionId': collection_id
+        })
+
 
 def import_collection(collection):
     external_collection = api.fetch_collection_by_external_id(collection['externalId'])
