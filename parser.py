@@ -1,5 +1,5 @@
 from __future__ import print_function
-import logging as log
+import logging
 import argparse
 
 import requests
@@ -12,7 +12,14 @@ AS_RUN_URL = 'http://muninn.ruv.is/files/rstiming/ruv/';
 
 api = OZCoreApi('9f5d3f4900000f5bc8f73db9d677c48478bc09cb', '9f16f362-abad-4042-9e26-a69759347bd9')
 
-log.basicConfig(level=log.DEBUG)
+# Logging setup
+log = logging.getLogger(__name__)
+log.setLevel(logging.WARN)
+handler = logging.StreamHandler()
+handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+log.addHandler(handler)
 
 def import_as_run():
     log.info('> importing RUV AS-RUN from:', AS_RUN_URL)
@@ -94,6 +101,14 @@ def import_video(video):
         return None
 
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description='Import EPG and As-Run data from RUV to OZ')
+    parser.add_argument('-v', help='turn on verbose mode', action='store_true')
+    args = parser.parse_args()
+    if args.v:
+        log.setLevel(logging.DEBUG)
+        log.info("Verbose mode on")
+
     try:
         import_epg()
     except Exception as e:
