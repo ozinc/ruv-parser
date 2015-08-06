@@ -23,6 +23,14 @@ class OZCoreApi:
         url = '{0}/channels/{1}/collections'.format(self.BASE_URL, self.channel_id)
         r = requests.post(url, data=collection, headers={'Authorization': 'Bearer ' + self.access_token})
         if r.status_code is 201:
-            return r.json()
+            return r.json()['data']
+        else:
+            raise Exception('An error occurred when creating collection, status was: {0}'.format(r.status_code))
+
+    def create_video(self, video):
+        url = '{0}/channels/{1}/videos'.format(self.BASE_URL, self.channel_id)
+        r = requests.post(url, data=video, headers={'Authorization': 'Bearer ' + self.access_token})
+        if r.status_code is 201:
+            return r.json()['data']
         else:
             raise Exception('An error occurred when creating collection, status was: {0}'.format(r.status_code))
