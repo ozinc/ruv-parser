@@ -63,8 +63,8 @@ def import_video(video):
         print('video already existed, doing nothing...')
         return None
 
-# main():
-try:
-    import_epg()
-except Exception as e:
-    print(e)
+if __name__ == '__main__':
+    try:
+        import_epg()
+    except Exception as e:
+        print(e)
