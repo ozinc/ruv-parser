@@ -22,79 +22,76 @@ handler.setFormatter(formatter)
 log.addHandler(handler)
 
 def import_as_run():
-    log.info('> importing RUV AS-RUN from:', AS_RUN_URL)
+    log.info('importing RUV AS-RUN from:', AS_RUN_URL)
     r = requests.get(AS_RUN_URL)
     if r.status_code is not 200:
-        raise Exception('Unable to fetch EPG from RUV, status was: %d', r.status_code)
+        raise Exception('unable to fetch AS RUN from RUV, status was: {0}'.format(r.status_code))
     soup = bs.BeautifulSoup(r.content, 'xml')
     events = soup.findAll('event')
-    log.info('> found %d as run items', len(events))
+    log.info('found %d as run items', len(events))
     for event in events:
-        collection_id = None
-        # For some reason RUV declares a "materialIdentifier" which is a
-        # combination of serieId and episodeNumber so we have to parse that.
-        materialIdentifier = event.find('material-identifier').text
-        if materialIdentifier:
-            # Get rid of leading zero which RUV prepends to the "material identifier".
-            serieId = str(int(materialIdentifier.split('-')[0]))
-            collection_id = import_collection({
-                'externalId': 'ruv_' + serieId,
-                'type': 'series', # TODO: You shouldn't need to do this.
-                'name': event.title.text
-            })
-
-        # Create the video:
-        import_video({
-            'videoType': 'recording',
-            'title': event.title.text,
-            'externalId': 'ruv_' + event.id.text,
-            'collectionId': collection_id
-        })
+        # Here we do a PATCH on the video with the only additional data that we get from RUVs
+        # as run service; the start and end timestamp of the video.
+        # Note that since we only know the "externalId" of the video we first need to fetch it.
+        external_id = 'ruv_' + event.id.text
+        external_video = api.fetch_video_by_external_id(external_id)
+        if external_video is None:
+            log.warn('as run video did not exist: {0}'.format(external_id))
+        else:
+            log.info('as run video did exist, updating: {0}'.format(external_video['id']))
+            # TODO: This.
 
 def import_epg():
-    log.info('> importing RUV EPG from: %s', EPG_URL)
+    log.info('importing RUV EPG from: %s', EPG_URL)
     r = requests.get(EPG_URL)
     if r.status_code is not 200:
-        raise Exception('Unable to fetch EPG from RUV, status was: %d', r.status_code)
+        raise Exception('unable to fetch EPG from RUV, status was: {0}'.format(r.status_code))
     soup = bs.BeautifulSoup(r.content, 'xml')
     events = soup.findAll('event')
-    log.info('> found %d scheduled items', len(events))
+    log.info('found %d scheduled items', len(events))
     for event in events:
         # Check if the event is associated with a collection
-        serieId = event.get('serie-id')
+        serie_id = event.get('serie-id')
         collection_id = None
-        if serieId:
-            # Populate the collection object
+        if serie_id:
+            # Populate the collection object.
             collection = {
-                'externalId': 'ruv_' + serieId,
+                'externalId': 'ruv_' + serie_id,
                 'type': 'series', # TODO: You shouldn't need to do this.
                 'name': event.title.text
             }
-            collection_id = import_collection(collection)
-            log.info('collection_id: %s', collection_id)
+
+            # RUV _sometimes_ has a "details" object associated with a "event" (schedule item)
+            # which enlists some info on the series which this episode belongs to.
+            seriesDetails = event.findAll('details', { 'id': serie_id })
+            if len(seriesDetails) > 0:
+                collection['name'] = seriesDetails[0].find('series-title').text
+                collection['description'] = seriesDetails[0].find('series-description').text
+
+            # TODO: The image.
+            collection_id = upsert_collection(collection)
 
         # Create the video:
-        import_video({
+        upsert_video({
             'title': event.title.text,
             'externalId': 'ruv_' + event.get('event-id'),
             'collectionId': collection_id
         })
 
-
-def import_collection(collection):
+def upsert_collection(collection):
     external_collection = api.fetch_collection_by_external_id(collection['externalId'])
     if external_collection is None:
-        log.info('creating collection:', collection)
+        log.info('creating collection: ' + str(collection))
         new_collection = api.create_collection(collection)
         return new_collection['id']
     else:
-        log.info('updating collection:', collection)
+        log.info('updating collection: ' + str(collection))
         return external_collection['id']
 
-def import_video(video):
+def upsert_video(video):
     external_video = api.fetch_video_by_external_id(video['externalId'])
     if external_video is None:
-        log.info('creating video:', video)
+        log.info('creating video: ' + str(video))
         return api.create_video(video)
     else:
         log.info('video already existed, doing nothing...')
@@ -107,7 +104,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.v:
         log.setLevel(logging.DEBUG)
-        log.info("Verbose mode on")
+        log.info('verbose mode on')
 
     try:
         import_epg()
