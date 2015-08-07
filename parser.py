@@ -11,7 +11,7 @@ from oz_core_api import OZCoreApi
 EPG_URL = 'http://muninn.ruv.is/files/rs/ruv/';
 AS_RUN_URL = 'http://muninn.ruv.is/files/rstiming/ruv/';
 
-api = OZCoreApi('9f5d3f4900000f5bc8f73db9d677c48478bc09cb', '9f16f362-abad-4042-9e26-a69759347bd9')
+api = OZCoreApi('9f5d3f4900000f5bc8f73db9d677c48478bc09cb')
 
 # Logging setup
 log = logging.getLogger(__name__)
@@ -119,7 +119,9 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Import EPG and As-Run data from RUV to OZ')
     parser.add_argument('-v', help='turn on verbose mode', action='store_true')
+    parser.add_argument('channel', help='The ID of the channel being imported to')
     args = parser.parse_args()
+    api.channel_id = args.channel
     if args.v:
         log.setLevel(logging.DEBUG)
         log.info('verbose mode on')
