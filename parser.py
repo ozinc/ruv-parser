@@ -1,4 +1,5 @@
 from __future__ import print_function
+import os
 import logging
 import argparse
 
@@ -10,7 +11,10 @@ from oz_core_api import OZCoreApi
 EPG_URL = 'http://muninn.ruv.is/files/rs/ruv/';
 AS_RUN_URL = 'http://muninn.ruv.is/files/rstiming/ruv/';
 
-api = OZCoreApi('9f5d3f4900000f5bc8f73db9d677c48478bc09cb', '9f16f362-abad-4042-9e26-a69759347bd9')
+username = os.environ['OZ_USERNAME']
+password = os.environ['OZ_PASSWORD']
+
+api = OZCoreApi(username, password, '9f16f362-abad-4042-9e26-a69759347bd9')
 
 # Logging setup
 log = logging.getLogger(__name__)
