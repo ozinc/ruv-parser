@@ -1,4 +1,5 @@
 from __future__ import print_function
+import os
 import logging
 import argparse
 import json
@@ -8,10 +9,13 @@ import bs4 as bs
 
 from oz_core_api import OZCoreApi
 
-EPG_URL = 'http://muninn.ruv.is/files/rs/ruv/';
-AS_RUN_URL = 'http://muninn.ruv.is/files/rstiming/ruv/';
+EPG_URL = 'http://muninn.ruv.is/files/rs/ruv/'
+AS_RUN_URL = 'http://muninn.ruv.is/files/rstiming/ruv/'
 
-api = OZCoreApi('9f5d3f4900000f5bc8f73db9d677c48478bc09cb')
+username = os.environ['OZ_USERNAME']
+password = os.environ['OZ_PASSWORD']
+
+api = OZCoreApi(username, password)
 
 # Logging setup
 log = logging.getLogger(__name__)
