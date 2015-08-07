@@ -46,7 +46,6 @@ class OZCoreApi:
         elif r.status_code is 404:
             return None
         else:
-            print(r.content)
             raise Exception('an error occurred when updating an object, status was: {0}'.format(r.status_code))
 
     def _create_object_at_uri(self, obj, uri):

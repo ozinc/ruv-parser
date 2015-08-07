@@ -11,6 +11,7 @@ from oz_core_api import OZCoreApi
 
 EPG_URL = 'http://muninn.ruv.is/files/rs/ruv/'
 AS_RUN_URL = 'http://muninn.ruv.is/files/rstiming/ruv/'
+RUV_CATEGORY_MOVIE_VALUE = '7'
 
 username = os.environ['OZ_USERNAME']
 password = os.environ['OZ_PASSWORD']
@@ -58,7 +59,19 @@ def import_epg():
         # Check if the event is associated with a collection
         serie_id = event.get('serie-id')
         collection_id = None
-        if serie_id:
+        content_type = 'episode'
+
+        # Very RUV specific: If the category is 'kvikmyndir' we know that this is a movie
+        # and we want to set that as the content type.
+        if event.category and event.category.get('value') == RUV_CATEGORY_MOVIE_VALUE:
+            content_type = 'movie'
+
+        # NOTE: Okay so apparently stuff like movies will often also have a serie_id
+        # in RUVs EPG data and that's we have do the following to decide whether a
+        # event belongs to a serie or not:
+        is_episode = serie_id and content_type != 'movie'
+
+        if is_episode:
             # Populate the collection object.
             collection = {
                 'externalId': 'ruv_' + serie_id,
@@ -73,7 +86,8 @@ def import_epg():
                 collection['name'] = seriesDetails[0].find('series-title').text
                 collection['description'] = seriesDetails[0].find('series-description').text
 
-            # TODO: The image.
+            # TODO: Deal with the image.
+
             collection_id = upsert_collection(collection)
 
         # Populate the metadata object.
@@ -81,8 +95,15 @@ def import_epg():
         if len(event.description.text) > 0:
             metadata['description'] = event.description.text
 
+        if is_episode:
+            # So apparently RUV don't have any notion of season numbers in their EPG data.
+            #metadata['seasonNumber'] = ?
+            metadata['episodeNumber'] = int(event.episode.get('number'))
+
         # Populate the video object.
         video = {
+            'videoType': 'recording',
+            'contentType': content_type,
             'title': event.title.text,
             'externalId': 'ruv_' + event.get('event-id'),
             'collectionId': collection_id
