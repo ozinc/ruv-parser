@@ -151,7 +151,5 @@ if __name__ == '__main__':
         log.setLevel(logging.DEBUG)
         log.info('verbose mode on')
 
-    #try:
+    # Do this thing!
     import_epg()
-#    except Exception as e:
-#        log.error(e)
