@@ -1,6 +1,7 @@
 from __future__ import print_function
 import logging
 import argparse
+import json
 
 import requests
 import bs4 as bs
@@ -71,12 +72,24 @@ def import_epg():
             # TODO: The image.
             collection_id = upsert_collection(collection)
 
-        # Create the video:
-        upsert_video({
+        # Populate the metadata object.
+        metadata = {}
+        if len(event.description.text) > 0:
+            metadata['description'] = event.description.text
+
+        # Populate the video object.
+        video = {
             'title': event.title.text,
             'externalId': 'ruv_' + event.get('event-id'),
             'collectionId': collection_id
-        })
+        }
+
+        # Only attach the metadata field if we have some metadata.
+        if len(metadata) > 0:
+            video['metadata'] = json.dumps(metadata)
+
+        # Create the video:
+        upsert_video(video)
 
 def upsert_collection(collection):
     external_collection = api.fetch_collection_by_external_id(collection['externalId'])
@@ -85,8 +98,11 @@ def upsert_collection(collection):
         new_collection = api.create_collection(collection)
         return new_collection['id']
     else:
+        # Attach the actual collection ID to the one that we are gonna update.
+        collection['id'] = external_collection['id']
         log.info('updating collection: ' + str(collection))
-        return external_collection['id']
+        updated_collection = api.update_collection(collection)
+        return updated_collection['id']
 
 def upsert_video(video):
     external_video = api.fetch_video_by_external_id(video['externalId'])
@@ -94,8 +110,10 @@ def upsert_video(video):
         log.info('creating video: ' + str(video))
         return api.create_video(video)
     else:
-        log.info('video already existed, doing nothing...')
-        return None
+        # Attach the actual video ID to the one that we are gonna update.
+        video['id'] = external_video['id']
+        log.info('video already existed, updating it: ' + str(video))
+        return api.update_video(video)
 
 if __name__ == '__main__':
 
@@ -106,7 +124,7 @@ if __name__ == '__main__':
         log.setLevel(logging.DEBUG)
         log.info('verbose mode on')
 
-    try:
-        import_epg()
-    except Exception as e:
-        log.error(e)
+    #try:
+    import_epg()
+#    except Exception as e:
+#        log.error(e)
