@@ -1,10 +1,19 @@
+import os
+
 import requests
 
 class OZCoreApi:
     BASE_URL = 'https://core.oz.com'
 
-    def __init__(self, access_token, channel_id):
-        self.access_token = access_token
+    def __init__(self, username, password, channel_id):
+        required_env = ['OZ_CLIENT_ID', 'OZ_CLIENT_SECRET']
+        for var in required_env:
+            if not os.environ.has_key(var):
+                raise Exception('The required variable {0} was not set.'.format(var))
+
+        self.client_id, self.client_secret = map(lambda var: os.environ[var], required_env)
+
+        self.access_token = self._authenticate_user(username, password)
         self.channel_id = channel_id
 
     def fetch_collection_by_external_id(self, external_id):
@@ -38,5 +47,20 @@ class OZCoreApi:
                 return None
             else:
                 return videos[0]
+        else:
+            raise Exception('An error occurred when fetching collection, status was: {0}'.format(r.status_code))
+
+    def _authenticate_user(self, username, password):
+        url = '{0}/oauth2/token'.format(self.BASE_URL)
+        data = {
+            'username': username,
+            'password': password,
+            'grant_type': 'password',
+            'client_id': self.client_id,
+            'client_secret': self.client_secret
+        }
+        r = requests.post(url, data=data)
+        if r.status_code is 200:
+            return r.json()['access_token']
         else:
             raise Exception('An error occurred when fetching collection, status was: {0}'.format(r.status_code))
