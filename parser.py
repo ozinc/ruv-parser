@@ -126,8 +126,8 @@ def import_epg():
         # at the specified time
         slot = {
             'type': 'content', # All slots have type content for now
-            'startTime': start_time.isostring(),
-            'endTime': end_time.isostring(),
+            'startTime': start_time.isoformat(),
+            'endTime': end_time.isoformat(),
             'metadata': {
                 'videoId': video_id
             }
