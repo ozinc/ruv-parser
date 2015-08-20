@@ -27,6 +27,10 @@ class OZCoreApi:
         url = '{0}/channels/{1}/collections'.format(self.BASE_URL, self.channel_id)
         return self._create_object_at_uri(collection, url)
 
+    def create_slot(self, slot):
+        url = '{0}/channels/{1}/slots'.format(self.BASE_URL, self.channel_id)
+        return self._create_object_at_uri(slot, url)
+
     def create_video(self, video):
         url = '{0}/channels/{1}/videos'.format(self.BASE_URL, self.channel_id)
         return self._create_object_at_uri(video, url)
