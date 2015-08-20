@@ -81,43 +81,53 @@ def import_epg():
         if len(event.description.text) > 0:
             metadata['description'] = event.description.text
 
-        # Populate the video object.
+        # Populate the video object and associated slot
         video = {
             'title': event.title.text,
             'externalId': 'ruv_' + event.get('event-id'),
             'collectionId': collection_id
         }
 
+
         # Only attach the metadata field if we have some metadata.
         if len(metadata) > 0:
             video['metadata'] = json.dumps(metadata)
 
         # Create the video:
-        upsert_video(video)
+        video_id = upsert_video(video)
+        print(video_id)
+
+        # Parse the time strings
+        #start_time = arrow.get(event.get('start-time'))
+        #end_time = arrow.get(event.get('end-time'))
+
+        #slot = {
+            #'type': 'content', # All slots have type content for now
+            #'startTime': start_time.isostring(),
+            #'endTime': end_time.isostring()
+            #'metadata': {
+                #'videoId':
+        #}
 
 def upsert_collection(collection):
-    external_collection = api.fetch_collection_by_external_id(collection['externalId'])
-    if external_collection is None:
-        log.info('creating collection: ' + str(collection))
-        new_collection = api.create_collection(collection)
-        return new_collection['id']
-    else:
-        # Attach the actual collection ID to the one that we are gonna update.
-        collection['id'] = external_collection['id']
-        log.info('updating collection: ' + str(collection))
-        updated_collection = api.update_collection(collection)
-        return updated_collection['id']
+    return upsert_object('collection', collection)
 
 def upsert_video(video):
-    external_video = api.fetch_video_by_external_id(video['externalId'])
-    if external_video is None:
-        log.info('creating video: ' + str(video))
-        return api.create_video(video)
+    return upsert_object('video', video)
+
+def upsert_object(obj_type, obj):
+    external_obj = getattr(api, 'fetch_{}_by_external_id'.format(obj_type))(obj['externalId'])
+    if external_obj is None:
+        log.info('creating {}: '.format(obj_type) + str(obj))
+        new_obj = getattr(api, 'create_{}'.format(obj_type))(obj)
+        return new_obj['id']
     else:
         # Attach the actual video ID to the one that we are gonna update.
-        video['id'] = external_video['id']
-        log.info('video already existed, updating it: ' + str(video))
-        return api.update_video(video)
+        obj['id'] = external_obj['id']
+        log.info('{} already existed, updating it: '.format(obj_type) + str(obj))
+        new_obj = getattr(api, 'update_{}'.format(obj_type))(obj)
+        return new_obj['id']
+
 
 if __name__ == '__main__':
 
