@@ -2,7 +2,7 @@ import os
 
 import requests
 
-class OZCoreApi:
+class OZCoreApi(object):
     BASE_URL = 'https://core.oz.com'
 
     def __init__(self, username, password):
