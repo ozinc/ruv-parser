@@ -6,6 +6,7 @@ import json
 
 import requests
 import bs4 as bs
+import arrow
 
 from oz_core_api import OZCoreApi
 
@@ -68,10 +69,10 @@ def import_epg():
 
             # RUV _sometimes_ has a "details" object associated with a "event" (schedule item)
             # which enlists some info on the series which this episode belongs to.
-            seriesDetails = event.findAll('details', { 'id': serie_id })
-            if len(seriesDetails) > 0:
-                collection['name'] = seriesDetails[0].find('series-title').text
-                collection['description'] = seriesDetails[0].find('series-description').text
+            series_details = event.findAll('details', { 'id': serie_id })
+            if len(series_details) > 0:
+                collection['name'] = series_details[0].find('series-title').text
+                collection['description'] = series_details[0].find('series-description').text
 
             # TODO: The image.
             collection_id = upsert_collection(collection)
@@ -81,7 +82,7 @@ def import_epg():
         if len(event.description.text) > 0:
             metadata['description'] = event.description.text
 
-        # Populate the video object and associated slot
+        # Populate the video object
         video = {
             'title': event.title.text,
             'externalId': 'ruv_' + event.get('event-id'),
@@ -95,19 +96,23 @@ def import_epg():
 
         # Create the video:
         video_id = upsert_video(video)
-        print(video_id)
 
         # Parse the time strings
-        #start_time = arrow.get(event.get('start-time'))
-        #end_time = arrow.get(event.get('end-time'))
+        start_time = arrow.get(event.get('start-time'))
+        end_time = arrow.get(event.get('end-time'))
 
-        #slot = {
-            #'type': 'content', # All slots have type content for now
-            #'startTime': start_time.isostring(),
-            #'endTime': end_time.isostring()
-            #'metadata': {
-                #'videoId':
-        #}
+        # Create a slot to schedule the video to be played
+        # at the specified time
+        slot = {
+            'type': 'content', # All slots have type content for now
+            'startTime': start_time.isostring(),
+            'endTime': end_time.isostring(),
+            'metadata': {
+                'videoId': video_id
+            }
+        }
+        api.create_slot(slot)
+
 
 def upsert_collection(collection):
     return upsert_object('collection', collection)
@@ -122,7 +127,7 @@ def upsert_object(obj_type, obj):
         new_obj = getattr(api, 'create_{}'.format(obj_type))(obj)
         return new_obj['id']
     else:
-        # Attach the actual video ID to the one that we are gonna update.
+        # Attach the actual object ID to the one that we are gonna update.
         obj['id'] = external_obj['id']
         log.info('{} already existed, updating it: '.format(obj_type) + str(obj))
         new_obj = getattr(api, 'update_{}'.format(obj_type))(obj)
@@ -130,7 +135,6 @@ def upsert_object(obj_type, obj):
 
 
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser(description='Import EPG and As-Run data from RUV to OZ')
     parser.add_argument('-v', help='turn on verbose mode', action='store_true')
     parser.add_argument('channel', help='The ID of the channel being imported to')
@@ -140,7 +144,4 @@ if __name__ == '__main__':
         log.setLevel(logging.DEBUG)
         log.info('verbose mode on')
 
-    #try:
     import_epg()
-#    except Exception as e:
-#        log.error(e)
