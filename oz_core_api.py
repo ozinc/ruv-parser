@@ -50,7 +50,6 @@ class OZCoreApi:
         elif r.status_code is 404:
             return None
         else:
-            print(r.content)
             raise Exception('an error occurred when updating an object, status was: {0}'.format(r.status_code))
 
     def _create_object_at_uri(self, obj, uri):
@@ -84,4 +83,4 @@ class OZCoreApi:
         if r.status_code is 200:
             return r.json()['access_token']
         else:
-            raise Exception('An error occurred when fetching collection, status was: {0}'.format(r.status_code))
+            raise Exception('An error occurred when authorizing, status was: {0}'.format(r.status_code))
