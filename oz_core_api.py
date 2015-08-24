@@ -53,7 +53,7 @@ class OZCoreApi(object):
             raise Exception('an error occurred when updating an object, status was: {0}'.format(r.status_code))
 
     def _create_object_at_uri(self, obj, uri):
-        r = requests.post(uri, data=obj, headers={'Authorization': 'Bearer ' + self.access_token})
+        r = requests.post(uri, json=obj, headers={'Authorization': 'Bearer ' + self.access_token})
         if r.status_code is 201:
             return r.json()['data']
         else:
