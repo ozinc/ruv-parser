@@ -107,8 +107,12 @@ def import_epg():
             'contentType': content_type,
             'title': event.title.text,
             'externalId': 'ruv_' + event.get('event-id'),
-            'collectionId': collection_id
+            'collectionId': collection_id,
         }
+
+        # Include poster
+        if event.image:
+            video['posterUrl'] = event.image.text
 
 
         # Only attach the metadata field if we have some metadata.
