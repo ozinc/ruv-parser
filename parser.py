@@ -46,7 +46,12 @@ def import_as_run():
             log.warn('as run video did not exist: {0}'.format(external_id))
         else:
             log.info('as run video did exist, updating: {0}'.format(external_video['id']))
-            # TODO: This.
+            if external_video['ingestionStatus'] == 'awaitingFile' and event.state.text == '4':
+                # This video has aired and is ready to be wodified.
+                updated_video = external_video.copy()
+                updated_video['ingestionStatus'] = 'processing'
+                upsert_video(updated_video)
+
 
 def import_epg():
     log.info('importing RUV EPG from: %s', EPG_URL)
