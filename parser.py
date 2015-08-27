@@ -10,7 +10,7 @@ import arrow
 
 from oz_core_api import OZCoreApi
 
-EPG_URL = 'http://muninn.ruv.is/files/rs/ruv/'
+EPG_URL    = 'http://muninn.ruv.is/files/rs/ruv/'
 AS_RUN_URL = 'http://muninn.ruv.is/files/rstiming/ruv/'
 RUV_CATEGORY_MOVIE_VALUE = '7'
 
@@ -29,7 +29,7 @@ handler.setFormatter(formatter)
 log.addHandler(handler)
 
 def import_as_run():
-    log.info('importing RUV AS-RUN from:', AS_RUN_URL)
+    log.info('importing RUV AS-RUN from: ' + AS_RUN_URL)
     r = requests.get(AS_RUN_URL)
     if r.status_code is not 200:
         raise Exception('unable to fetch AS RUN from RUV, status was: {0}'.format(r.status_code))
@@ -46,7 +46,12 @@ def import_as_run():
             log.warn('as run video did not exist: {0}'.format(external_id))
         else:
             log.info('as run video did exist, updating: {0}'.format(external_video['id']))
-            # TODO: This.
+            if external_video['ingestionStatus'] == 'awaitingFile' and event.state.text == '4':
+                # This video has aired and is ready to be vodified.
+                updated_video = external_video.copy()
+                updated_video['ingestionStatus'] = 'processing'
+                upsert_video(updated_video)
+
 
 def import_epg():
     log.info('importing RUV EPG from: %s', EPG_URL)
@@ -162,6 +167,7 @@ def upsert_object(obj_type, obj):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Import EPG and As-Run data from RUV to OZ')
     parser.add_argument('-v', help='turn on verbose mode', action='store_true')
+    parser.add_argument('action', help='epg or asrun')
     parser.add_argument('channel', help='The ID of the channel being imported to')
     args = parser.parse_args()
     api.channel_id = args.channel
@@ -169,4 +175,12 @@ if __name__ == '__main__':
         log.setLevel(logging.DEBUG)
         log.info('verbose mode on')
     # Do this thing!
-    import_epg()
+    if args.action == 'epg':
+        import_epg()
+    elif args.action == 'asrun':
+        import_as_run()
+    else:
+        raise Exception('unsupported operation')
+
+
+
