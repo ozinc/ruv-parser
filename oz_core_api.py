@@ -44,7 +44,7 @@ class OZCoreApi(object):
         return self._update_object_at_uri(video, url)
 
     def _update_object_at_uri(self, obj, uri):
-        r = requests.patch(uri, data=obj, headers={'Authorization': 'Bearer ' + self.access_token})
+        r = requests.patch(uri, json=obj, headers={'Authorization': 'Bearer ' + self.access_token})
         if r.status_code is 200:
             return r.json()['data']
         elif r.status_code is 404:
