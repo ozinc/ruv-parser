@@ -45,11 +45,14 @@ def import_as_run():
         if external_video is None:
             log.warn('as run video did not exist: {0}'.format(external_id))
         else:
-            log.info('as run video did exist, updating: {0}'.format(external_video['id']))
+            log.info('as run video did exist, state is: {0}'.format(event.state.text))
             if external_video['ingestionStatus'] == 'awaitingFile' and event.state.text == '4':
+                log.info('Previously unaired episode has aired, vodifying video {0}'.format(external_video.id))
                 # This video has aired and is ready to be vodified.
                 updated_video = external_video.copy()
                 updated_video['ingestionStatus'] = 'processing'
+                updated_video['metadata']['startTime'] = arrow(event.start.text).isoformat()
+                updated_video['metadata']['endTime'] = arrow(event.end.text).isoformat()
                 upsert_video(updated_video)
 
 
