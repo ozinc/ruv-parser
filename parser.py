@@ -116,6 +116,7 @@ def import_epg():
             'title': event.title.text,
             'externalId': 'ruv_' + event.get('event-id'),
             'collectionId': collection_id,
+            'published': 'true'
         }
 
         # Include poster
