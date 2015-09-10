@@ -23,6 +23,10 @@ class OZCoreApi(object):
         url = '{0}/channels/{1}/videos?externalId={2}&all=true'.format(self.BASE_URL, self.channel_id, external_id)
         return self._fetch_object_at_uri(url)
 
+    def fetch_slot_by_video_id(self, video_id):
+        url = '{0}/channels/{1}/slots?videoId={2}'.format(self.BASE_URL, self.channel_id, video_id)
+        return self._fetch_object_at_uri(url)
+
     def create_collection(self, collection):
         url = '{0}/channels/{1}/collections'.format(self.BASE_URL, self.channel_id)
         return self._create_object_at_uri(collection, url)
@@ -43,6 +47,10 @@ class OZCoreApi(object):
         url = '{0}/channels/{1}/videos/{2}'.format(self.BASE_URL, self.channel_id, video['id'])
         return self._update_object_at_uri(video, url)
 
+    def update_slot(self, slot):
+        url = '{0}/channels/{1}/slots/{2}'.format(self.BASE_URL, self.channel_id, slot['id'])
+        return self._update_object_at_uri(slot, url)
+
     def _update_object_at_uri(self, obj, uri):
         r = requests.patch(uri, json=obj, headers={'Authorization': 'Bearer ' + self.access_token})
         if r.status_code is 200:
@@ -62,11 +70,11 @@ class OZCoreApi(object):
     def _fetch_object_at_uri(self, uri):
         r = requests.get(uri, headers={'Authorization': 'Bearer ' + self.access_token})
         if r.status_code is 200:
-            videos = r.json()['data']
-            if len(videos) is 0:
+            objects = r.json()['data']
+            if len(objects) is 0:
                 return None
             else:
-                return videos[0]
+                return objects[0]
         else:
             raise Exception('an error occurred when fetching collection, status was: {0}'.format(r.status_code))
 

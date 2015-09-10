@@ -3,6 +3,7 @@ import os
 import logging
 import argparse
 import json
+from collections import namedtuple
 
 import requests
 import bs4 as bs
@@ -27,6 +28,8 @@ handler.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 log.addHandler(handler)
+
+CoreObject = namedtuple('CoreObject', ['type', 'properties'])
 
 def import_as_run():
     log.info('importing RUV AS-RUN from: ' + AS_RUN_URL)
@@ -82,7 +85,7 @@ def import_epg():
 
         if is_episode:
             # Populate the collection object.
-            collection = {
+            collectionProps = {
                 'externalId': 'ruv_' + serie_id,
                 'type': 'series', # TODO: You shouldn't need to do this.
                 'name': event.title.text
@@ -92,10 +95,12 @@ def import_epg():
             # which enlists some info on the series which this episode belongs to.
             series_details = event.findAll('details', { 'id': serie_id })
             if len(series_details) > 0:
-                collection['name'] = series_details[0].find('series-title').text
-                collection['description'] = series_details[0].find('series-description').text
+                collectionProps['name'] = series_details[0].find('series-title').text
+                collectionProps['description'] = series_details[0].find('series-description').text
 
             # TODO: Deal with the image.
+
+            collection = CoreObject('collection', collectionProps);
 
             collection_id = upsert_collection(collection)
 
@@ -110,7 +115,7 @@ def import_epg():
             #metadata['seasonNumber'] = ?
             metadata['episodeNumber'] = int(event.episode.get('number'))
 
-        video = {
+        videoProps = {
             'videoType': 'recording',
             'contentType': content_type,
             'title': event.title.text,
@@ -121,12 +126,14 @@ def import_epg():
 
         # Include poster
         if event.image:
-            video['posterUrl'] = event.image.text
+            videoProps['posterUrl'] = event.image.text
 
 
         # Only attach the metadata field if we have some metadata.
         if len(metadata) > 0:
-            video['metadata'] = json.dumps(metadata)
+            videoProps['metadata'] = json.dumps(metadata)
+
+        video = CoreObject('video', videoProps)
 
         # Create the video:
         video_id = upsert_video(video)
@@ -136,36 +143,43 @@ def import_epg():
 
         # Create a slot to schedule the video to be played
         # at the specified time
-        slot = {
-            'type': 'content', # All slots have type content for now
+        slot = CoreObject('slot', {
+            'type': 'stream', # All slots have type content for now
+            'contentType': 'regular',
             'startTime': start_time.isoformat(),
+            # End time left empty as we want this slot to last until the next.
             'metadata': {
                 'videoId': video_id
             }
-        }
+        })
         upsert_slot(slot)
 
 
-def upsert_collection(collection):
-    return upsert_object('collection', collection)
 
 def upsert_slot(slot):
-    return upsert_object('slot', slot)
+    external_obj = api.fetch_slot_by_video_id(slot.properties['metadata']['videoId'])
+    upsert_object(external_obj, slot);
+
+def upsert_collection(collection):
+    return upsert_external_object(collection)
 
 def upsert_video(video):
-    return upsert_object('video', video)
+    return upsert_external_object(video)
 
-def upsert_object(obj_type, obj):
-    external_obj = getattr(api, 'fetch_{}_by_external_id'.format(obj_type))(obj['externalId'])
+def upsert_external_object(obj):
+    external_obj = getattr(api, 'fetch_{}_by_external_id'.format(obj.type))(obj.properties['externalId'])
+    upsert_object(external_obj, obj);
+
+def upsert_object(external_obj, obj):
     if external_obj is None:
-        log.info('creating {}: '.format(obj_type) + str(obj))
-        new_obj = getattr(api, 'create_{}'.format(obj_type))(obj)
+        log.info('creating {}: '.format(obj.type) + str(obj.properties))
+        new_obj = getattr(api, 'create_{}'.format(obj.type))(obj.properties)
         return new_obj['id']
     else:
         # Attach the actual object ID to the one that we are gonna update.
-        obj['id'] = external_obj['id']
-        log.info('{} already existed, updating it: '.format(obj_type) + str(obj))
-        new_obj = getattr(api, 'update_{}'.format(obj_type))(obj)
+        obj.properties['id'] = external_obj['id']
+        log.info('{} already existed, updating it: '.format(obj.type) + str(obj.properties))
+        new_obj = getattr(api, 'update_{}'.format(obj.type))(obj.properties)
         return new_obj['id']
 
 
