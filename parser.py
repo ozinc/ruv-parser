@@ -133,23 +133,24 @@ def import_epg():
 
         # Parse the time strings
         start_time = arrow.get(event.get('start-time'))
-        end_time = arrow.get(event.get('end-time'))
 
         # Create a slot to schedule the video to be played
         # at the specified time
         slot = {
             'type': 'content', # All slots have type content for now
             'startTime': start_time.isoformat(),
-            'endTime': end_time.isoformat(),
             'metadata': {
                 'videoId': video_id
             }
         }
-        api.create_slot(slot)
+        upsert_slot(slot)
 
 
 def upsert_collection(collection):
     return upsert_object('collection', collection)
+
+def upsert_slot(slot):
+    return upsert_object('slot', slot)
 
 def upsert_video(video):
     return upsert_object('video', video)
