@@ -158,7 +158,7 @@ def import_epg():
 
 def upsert_slot(slot):
     external_obj = api.fetch_slot_by_video_id(slot.properties['metadata']['videoId'])
-    upsert_object(external_obj, slot);
+    return upsert_object(external_obj, slot);
 
 def upsert_collection(collection):
     return upsert_external_object(collection)
@@ -168,7 +168,7 @@ def upsert_video(video):
 
 def upsert_external_object(obj):
     external_obj = getattr(api, 'fetch_{}_by_external_id'.format(obj.type))(obj.properties['externalId'])
-    upsert_object(external_obj, obj);
+    return upsert_object(external_obj, obj);
 
 def upsert_object(external_obj, obj):
     if external_obj is None:
