@@ -56,7 +56,7 @@ def import_as_run():
                 updated_video['ingestionStatus'] = 'processing'
                 updated_video['metadata']['startTime'] = arrow.get(event.start.text).isoformat()
                 updated_video['metadata']['endTime'] = arrow.get(event.stop.text).isoformat()
-                upsert_video(updated_video)
+                upsert_video(CoreObject('video', updated_video))
 
 
 def import_epg():
