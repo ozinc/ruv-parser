@@ -40,10 +40,6 @@ def import_as_run():
     events = soup.findAll('event')
     log.info('found %d as run items', len(events))
 
-    # HACK: keep track of last end time as RUV does not supply a start property
-    # for the "dagskrarlok" event
-    last_endtime = None
-
     for event in events:
         # Here we do a PATCH on the video with the only additional data that we get from RUVs
         # as run service; the start and end timestamp of the video.
@@ -71,8 +67,6 @@ def import_as_run():
                 updated_video['metadata']['startTime'] = start_time
                 updated_video['metadata']['endTime'] = end_time
                 upsert_video(CoreObject('video', updated_video))
-
-            last_endtime = end_time
 
 
 def import_epg(url):
