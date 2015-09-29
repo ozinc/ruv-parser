@@ -59,9 +59,9 @@ def import_as_run():
                 upsert_video(CoreObject('video', updated_video))
 
 
-def import_epg():
-    log.info('importing RUV EPG from: %s', EPG_URL)
-    r = requests.get(EPG_URL)
+def import_epg(url):
+    log.info('importing RUV EPG from: %s', url)
+    r = requests.get(url)
     if r.status_code is not 200:
         raise Exception('unable to fetch EPG from RUV, status was: {0}'.format(r.status_code))
     soup = bs.BeautifulSoup(r.content, 'xml')
@@ -205,7 +205,10 @@ if __name__ == '__main__':
         log.info('verbose mode on')
     # Do this thing!
     if args.action == 'epg':
-        import_epg()
+        for i in range(7):
+            date = arrow.now().replace(days=i)
+            url = EPG_URL + str(date.date())
+            import_epg(url)
     elif args.action == 'asrun':
         import_as_run()
     else:
