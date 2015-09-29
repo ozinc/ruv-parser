@@ -39,6 +39,11 @@ def import_as_run():
     soup = bs.BeautifulSoup(r.content, 'xml')
     events = soup.findAll('event')
     log.info('found %d as run items', len(events))
+
+    # HACK: keep track of last end time as RUV does not supply a start property
+    # for the "dagskrarlok" event
+    last_endtime = None
+
     for event in events:
         # Here we do a PATCH on the video with the only additional data that we get from RUVs
         # as run service; the start and end timestamp of the video.
@@ -49,14 +54,20 @@ def import_as_run():
             log.warn('as run video did not exist: {0}'.format(external_id))
         else:
             log.info('as run video did exist, state is: {0}'.format(event.state.text))
+
+            start_time = arrow.get(event.start.text).isoformat() or last_endtime
+            end_time   = arrow.get(event.stop.text).isoformat()
+
             if external_video['ingestionStatus'] == 'awaitingFile' and event.state.text == '4':
                 log.info('Previously unaired episode has aired, vodifying video {0}'.format(external_video['id']))
                 # This video has aired and is ready to be vodified.
                 updated_video = external_video.copy()
                 updated_video['ingestionStatus'] = 'processing'
-                updated_video['metadata']['startTime'] = arrow.get(event.start.text).isoformat()
-                updated_video['metadata']['endTime'] = arrow.get(event.stop.text).isoformat()
+                updated_video['metadata']['startTime'] = start_time
+                updated_video['metadata']['endTime'] = end_time
                 upsert_video(CoreObject('video', updated_video))
+
+        last_endtime = end_time
 
 
 def import_epg(url):
