@@ -56,8 +56,8 @@ def import_as_run():
                 end_time   = arrow.get(event.stop.text).isoformat()
             except Exception as e:
                 # Either start or stop were Null
-                log.error("Event: ", event, "\nException: ", e)
-                start_time = last_endtime
+                log.warn("Start or endtime of event was empty, skipping...")
+                continue
 
             if external_video['ingestionStatus'] == 'awaitingFile' and event.state.text == '4':
                 log.info('Previously unaired episode has aired, vodifying video {0}'.format(external_video['id']))
