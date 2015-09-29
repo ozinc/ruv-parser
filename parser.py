@@ -72,7 +72,7 @@ def import_as_run():
                 updated_video['metadata']['endTime'] = end_time
                 upsert_video(CoreObject('video', updated_video))
 
-        last_endtime = end_time
+            last_endtime = end_time
 
 
 def import_epg(url):
