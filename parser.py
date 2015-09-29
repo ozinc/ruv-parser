@@ -115,13 +115,26 @@ def import_epg():
             #metadata['seasonNumber'] = ?
             metadata['episodeNumber'] = int(event.episode.get('number'))
 
+        # Parse the time strings
+        start_time = arrow.get(event.get('start-time'))
+
+        # For now we assume the same rights as 'vod' type. This may change
+        rights = soup.find('rights', type='vod')
+        availability_time = None
+
+        if rights is not None and rights.get('action') == 'allowed':
+            availability_time = arrow.get(rights.get('expires'))
+
+
         videoProps = {
             'videoType': 'recording',
             'contentType': content_type,
             'title': event.title.text,
             'externalId': 'ruv_' + event.get('event-id'),
             'collectionId': collection_id,
-            'published': True
+            'published': True,
+            'playableFrom': start_time.isoformat(),
+            'playableUntil': availability_time.isoformat()
         }
 
         # Include poster
@@ -137,9 +150,6 @@ def import_epg():
 
         # Create the video:
         video_id = upsert_video(video)
-
-        # Parse the time strings
-        start_time = arrow.get(event.get('start-time'))
 
         # Create a slot to schedule the video to be played
         # at the specified time
