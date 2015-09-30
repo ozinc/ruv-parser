@@ -144,12 +144,14 @@ def import_epg(url):
             'collectionId': collection_id,
             'published': True,
             'playableFrom': start_time.isoformat(),
-            'playableUntil': availability_time.isoformat()
         }
 
         # Include poster
         if event.image:
             videoProps['posterUrl'] = event.image.text
+
+        if availability_time:
+            videoProps['playableUntil'] = availability_time.isoformat()
 
 
         # Only attach the metadata field if we have some metadata.
