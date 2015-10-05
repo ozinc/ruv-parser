@@ -135,9 +135,8 @@ def import_epg(url):
         if rights is not None and rights.get('action') == 'allowed':
             availability_time = arrow.get(rights.get('expires'))
 
-
         videoProps = {
-            'videoType': 'recording',
+            'streamType': 'stream',
             'contentType': content_type,
             'title': event.title.text,
             'externalId': 'ruv_' + event.get('event-id'),
@@ -166,16 +165,12 @@ def import_epg(url):
         # Create a slot to schedule the video to be played
         # at the specified time
         slot = CoreObject('slot', {
-            'type': 'stream', # All slots have type content for now
-            'contentType': 'regular',
+            'type': 'regular',
             'startTime': start_time.isoformat(),
             # End time left empty as we want this slot to last until the next.
-            'metadata': {
-                'videoId': video_id
-            }
+            'videoId': video_id
         })
         upsert_slot(slot)
-
 
 
 def upsert_slot(slot):
