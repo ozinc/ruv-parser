@@ -174,7 +174,7 @@ def import_epg(url):
 
 
 def upsert_slot(slot):
-    external_obj = api.fetch_slot_by_video_id(slot.properties['metadata']['videoId'])
+    external_obj = api.fetch_slot_by_video_id(slot.properties['videoId'])
     return upsert_object(external_obj, slot);
 
 def upsert_collection(collection):
