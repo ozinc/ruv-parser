@@ -136,7 +136,7 @@ def import_epg(url):
             availability_time = arrow.get(rights.get('expires'))
 
         videoProps = {
-            'streamType': 'stream',
+            'sourceType': 'stream',
             'contentType': content_type,
             'title': event.title.text,
             'externalId': 'ruv_' + event.get('event-id'),
@@ -220,6 +220,3 @@ if __name__ == '__main__':
         import_as_run()
     else:
         raise Exception('unsupported operation')
-
-
-
