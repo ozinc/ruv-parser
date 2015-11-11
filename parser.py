@@ -64,9 +64,8 @@ def import_as_run():
                 # This video has aired and is ready to be vodified.
                 updated_video = external_video.copy()
                 updated_video['ingestionStatus'] = 'processing'
-                updated_video['metadata']['startTime'] = start_time
-                updated_video['metadata']['endTime'] = end_time
-                upsert_video(CoreObject('video', updated_video))
+                upsert_video(CoreObject('video', updated_video),
+                        startTime=start_time, endTime=end_time)
 
 
 def import_epg(url):
