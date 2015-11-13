@@ -9,7 +9,7 @@ import requests
 import bs4 as bs
 import arrow
 
-from oz_core_api import OZCoreApi
+from oz import OZCoreApi
 
 EPG_URL    = 'http://muninn.ruv.is/files/rs/ruv/'
 AS_RUN_URL = 'http://muninn.ruv.is/files/rstiming/ruv/'
