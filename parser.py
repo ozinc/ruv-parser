@@ -172,30 +172,26 @@ def import_epg(url):
         upsert_slot(slot)
 
 
-def upsert_slot(slot):
-    external_obj = api.fetch_slot_by_video_id(slot.properties['videoId'])
-    return upsert_object(external_obj, slot);
+def upsert_slot(slot, **kwargs):
+    return upsert_object(slot, **kwargs);
 
-def upsert_collection(collection):
-    return upsert_external_object(collection)
+def upsert_collection(collection, **kwargs):
+    return upsert_object(collection, **kwargs)
 
-def upsert_video(video):
-    return upsert_external_object(video)
+def upsert_video(video, **kwargs):
+    return upsert_object(video, **kwargs)
 
-def upsert_external_object(obj):
+def upsert_external_object(obj, **kwargs):
     external_obj = getattr(api, 'fetch_{}_by_external_id'.format(obj.type))(obj.properties['externalId'])
-    return upsert_object(external_obj, obj);
-
-def upsert_object(external_obj, obj):
     if external_obj is None:
         log.info('creating {}: '.format(obj.type) + str(obj.properties))
-        new_obj = getattr(api, 'create_{}'.format(obj.type))(obj.properties)
+        new_obj = getattr(api, 'create_{}'.format(obj.type))(obj.properties, **kwargs)
         return new_obj['id']
     else:
         # Attach the actual object ID to the one that we are gonna update.
         obj.properties['id'] = external_obj['id']
         log.info('{} already existed, updating it: '.format(obj.type) + str(obj.properties))
-        new_obj = getattr(api, 'update_{}'.format(obj.type))(obj.properties)
+        new_obj = getattr(api, 'update_{}'.format(obj.type))(obj.properties, **kwargs)
         return new_obj['id']
 
 
