@@ -181,7 +181,7 @@ def upsert_collection(collection, **kwargs):
 def upsert_video(video, **kwargs):
     return upsert_object(video, **kwargs)
 
-def upsert_external_object(obj, **kwargs):
+def upsert_object(obj, **kwargs):
     external_obj = getattr(api, 'fetch_{}_by_external_id'.format(obj.type))(obj.properties['externalId'])
     if external_obj is None:
         log.info('creating {}: '.format(obj.type) + str(obj.properties))
