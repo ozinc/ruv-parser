@@ -166,6 +166,7 @@ def import_epg(url):
         slot = CoreObject('slot', {
             'type': 'regular',
             'startTime': start_time.isoformat(),
+            'externalId': event.get('event-id'),
             # End time left empty as we want this slot to last until the next.
             'videoId': video_id
         })
