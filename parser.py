@@ -85,9 +85,10 @@ def import_epg(url):
         content_type = 'episode'
 
         if event.category:
-            if event.category.get('value') == RUV_CATEGORY_MOVIE_VALUE
+            category_id = event.category.get('value')
+            if category_id == RUV_CATEGORY_MOVIE_VALUE:
                 content_type = 'movie'
-            if event.category.get('value') == RUV_CATEGORY_NEWS_VALUE or event.category.get('value') == RUV_CATEGORY_SPORT_VALUE:
+            elif category_id in [RUV_CATEGORY_NEWS_VALUE, RUV_CATEGORY_SPORT_VALUE]:
                 content_type = 'news'
 
         # NOTE: Okay so apparently stuff like movies will often also have a serie_id
