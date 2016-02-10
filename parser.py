@@ -9,7 +9,7 @@ import requests
 import bs4 as bs
 import arrow
 
-from oz_core_api import OZCoreApi
+from oz import OZCoreApi
 
 EPG_URL    = 'http://muninn.ruv.is/files/rs/ruv/'
 AS_RUN_URL = 'http://muninn.ruv.is/files/rstiming/ruv/'
@@ -64,9 +64,8 @@ def import_as_run():
                 # This video has aired and is ready to be vodified.
                 updated_video = external_video.copy()
                 updated_video['ingestionStatus'] = 'processing'
-                updated_video['metadata']['startTime'] = start_time
-                updated_video['metadata']['endTime'] = end_time
-                upsert_video(CoreObject('video', updated_video))
+                upsert_video(CoreObject('video', updated_video),
+                        startTime=start_time, endTime=end_time)
 
 
 def import_epg(url):
@@ -167,36 +166,33 @@ def import_epg(url):
         slot = CoreObject('slot', {
             'type': 'regular',
             'startTime': start_time.isoformat(),
+            'externalId': event.get('event-id'),
             # End time left empty as we want this slot to last until the next.
             'videoId': video_id
         })
         upsert_slot(slot)
 
 
-def upsert_slot(slot):
-    external_obj = api.fetch_slot_by_video_id(slot.properties['videoId'])
-    return upsert_object(external_obj, slot);
+def upsert_slot(slot, **kwargs):
+    return upsert_object(slot, **kwargs);
 
-def upsert_collection(collection):
-    return upsert_external_object(collection)
+def upsert_collection(collection, **kwargs):
+    return upsert_object(collection, **kwargs)
 
-def upsert_video(video):
-    return upsert_external_object(video)
+def upsert_video(video, **kwargs):
+    return upsert_object(video, **kwargs)
 
-def upsert_external_object(obj):
+def upsert_object(obj, **kwargs):
     external_obj = getattr(api, 'fetch_{}_by_external_id'.format(obj.type))(obj.properties['externalId'])
-    return upsert_object(external_obj, obj);
-
-def upsert_object(external_obj, obj):
     if external_obj is None:
         log.info('creating {}: '.format(obj.type) + str(obj.properties))
-        new_obj = getattr(api, 'create_{}'.format(obj.type))(obj.properties)
+        new_obj = getattr(api, 'create_{}'.format(obj.type))(obj.properties, **kwargs)
         return new_obj['id']
     else:
         # Attach the actual object ID to the one that we are gonna update.
         obj.properties['id'] = external_obj['id']
         log.info('{} already existed, updating it: '.format(obj.type) + str(obj.properties))
-        new_obj = getattr(api, 'update_{}'.format(obj.type))(obj.properties)
+        new_obj = getattr(api, 'update_{}'.format(obj.type))(obj.properties, **kwargs)
         return new_obj['id']
 
 
