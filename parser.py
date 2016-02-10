@@ -14,6 +14,8 @@ from oz import OZCoreApi
 EPG_URL    = 'http://muninn.ruv.is/files/rs/ruv/'
 AS_RUN_URL = 'http://muninn.ruv.is/files/rstiming/ruv/'
 RUV_CATEGORY_MOVIE_VALUE = '7'
+RUV_CATEGORY_NEWS_VALUE = '3'
+RUV_CATEGORY_SPORT_VALUE = '5'
 
 username = os.environ['OZ_USERNAME']
 password = os.environ['OZ_PASSWORD']
@@ -82,10 +84,11 @@ def import_epg(url):
         collection_id = None
         content_type = 'episode'
 
-        # Very RUV specific: If the category is 'kvikmyndir' we know that this is a movie
-        # and we want to set that as the content type.
-        if event.category and event.category.get('value') == RUV_CATEGORY_MOVIE_VALUE:
-            content_type = 'movie'
+        if event.category:
+            if event.category.get('value') == RUV_CATEGORY_MOVIE_VALUE
+                content_type = 'movie'
+            if event.category.get('value') == RUV_CATEGORY_NEWS_VALUE or event.category.get('value') == RUV_CATEGORY_SPORT_VALUE:
+                content_type = 'news'
 
         # NOTE: Okay so apparently stuff like movies will often also have a serie_id
         # in RUVs EPG data and that's we have do the following to decide whether a
@@ -126,6 +129,9 @@ def import_epg(url):
 
         # Parse the time strings
         start_time = arrow.get(event.get('start-time'))
+
+        if content_type == 'news':
+            metadata['date'] = start_time.isoformat()
 
         # For now we assume the same rights as 'vod' type. This may change
         rights = soup.find('rights', type='vod')
