@@ -43,32 +43,37 @@ def import_as_run():
     log.info('found %d as run items', len(events))
 
     for event in events:
-        # Here we do a PATCH on the video with the only additional data that we get from RUVs
+        # Here we do a PATCH on the slot with the only additional data that we get from RUVs
         # as run service; the start and end timestamp of the video.
         # Note that since we only know the "externalId" of the video we first need to fetch it.
         external_id = 'ruv_' + event.id.text
-        external_video = api.fetch_video_by_external_id(external_id)
-        if external_video is None:
-            log.warn('as run video did not exist: {0}'.format(external_id))
+        external_slot = api.fetch_slot_by_external_id(external_id, include='video')
+        if external_slot is None:
+            log.warn('as run slot did not exist: {0}'.format(external_id))
         else:
-            log.info('as run video did exist, state is: {0}'.format(event.state.text))
+            log.info('as run slot did exist, state is: {0}'.format(event.state.text))
 
             try:
                 start_time = arrow.get(event.start.text).isoformat()
-                end_time   = arrow.get(event.stop.text).isoformat()
+                end_time = arrow.get(event.stop.text).isoformat()
             except Exception as e:
-                # Either start or stop were Null
-                log.warn("Start or endtime of event was empty, skipping...")
+                # Either start or stop were null
+                log.warn('Start or end time of event was empty, skipping...')
                 continue
 
+            external_video = external_slot['video']
             if external_video['ingestionStatus'] == 'awaitingFile' and event.state.text == '4':
-                log.info('Previously unaired episode has aired, vodifying video {0}'.format(external_video['id']))
-                # This video has aired and is ready to be vodified.
-                updated_video = external_video.copy()
-                updated_video['ingestionStatus'] = 'processing'
-                upsert_video(CoreObject('video', updated_video),
-                        startTime=start_time, endTime=end_time)
+                log.info('Previously unaired episode has aired, vodifying video {0}'
+                    .format(external_video['id']))
 
+                # This video has aired and is ready to be vodified.
+                updated_slot = {
+                    'externalId': external_id,
+                    'metadata': external_slot.get('metadata', {})
+                }
+                updated_slot['metadata']['started'] = start_time
+                updated_slot['metadata']['ended'] = end_time
+                upsert_slot(CoreObject('slot', updated_slot), vodify='true')
 
 def import_epg(url):
     log.info('importing RUV EPG from: %s', url)
