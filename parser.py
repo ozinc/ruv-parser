@@ -34,11 +34,9 @@ log.addHandler(handler)
 CoreObject = namedtuple('CoreObject', ['type', 'properties'])
 
 def import_as_run():
-    log.info('importing RUV AS-RUN from: ' + AS_RUN_URL)
-    r = requests.get(AS_RUN_URL)
-    if r.status_code is not 200:
-        raise Exception('unable to fetch AS RUN from RUV, status was: {0}'.format(r.status_code))
-    soup = bs.BeautifulSoup(r.content, 'xml')
+    log.info('importing asrun for channel: ruv')
+    stdin = sys.stdin.buffer.read()
+    soup = bs.BeautifulSoup(stdin, 'xml')
     events = soup.findAll('event')
     log.info('found %d as run items', len(events))
 
@@ -76,11 +74,9 @@ def import_as_run():
                 upsert_slot(CoreObject('slot', updated_slot), vodify='true')
 
 def import_epg(url):
-    log.info('importing RUV EPG from: %s', url)
-    r = requests.get(url)
-    if r.status_code is not 200:
-        raise Exception('unable to fetch EPG from RUV, status was: {0}'.format(r.status_code))
-    soup = bs.BeautifulSoup(r.content, 'xml')
+    log.info('importing RUV EPG from')
+    stdin = sys.stdin.buffer.read()
+    soup = bs.BeautifulSoup(stdin, 'xml')
     events = soup.findAll('event')
     log.info('found %d scheduled items', len(events))
     for event in events:
