@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+#-*- coding: utf-8 -*-
+
 from __future__ import print_function
 import os
 import logging
@@ -8,6 +11,7 @@ from collections import namedtuple
 import requests
 import bs4 as bs
 import arrow
+import sys
 
 from oz import OZCoreApi
 
@@ -159,14 +163,12 @@ def import_epg(url):
         if availability_time:
             videoProps['playableUntil'] = availability_time.isoformat()
 
-
         # Only attach the metadata field if we have some metadata.
         if len(metadata) > 0:
-            videoProps['metadata'] = json.dumps(metadata)
-
-        video = CoreObject('video', videoProps)
+            videoProps['metadata'] = metadata
 
         # Create the video:
+        video = CoreObject('video', videoProps)
         video_id = upsert_video(video)
 
         # Create a slot to schedule the video to be played
@@ -209,6 +211,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', help='turn on verbose mode', action='store_true')
     parser.add_argument('action', help='epg or asrun')
     parser.add_argument('channel', help='The ID of the channel being imported to')
+    parser.add_argument('station', help='The external id of the service in RUV\'s system')
     args = parser.parse_args()
     api.channel_id = args.channel
     if args.v:
