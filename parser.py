@@ -124,7 +124,7 @@ def import_epg(url):
 
         # Populate the metadata object.
         metadata = {}
-        if len(event.description.text) > 0:
+        if event.description != None and len(event.description.text) > 0:
             metadata['description'] = event.description.text
 
         # Populate the video object
@@ -145,7 +145,6 @@ def import_epg(url):
 
         if rights is not None and rights.get('action') == 'allowed':
             availability_time = arrow.get(rights.get('expires'))
-
         videoProps = {
             'sourceType': 'stream',
             'contentType': content_type,
@@ -176,7 +175,7 @@ def import_epg(url):
         slot = CoreObject('slot', {
             'type': 'regular',
             'startTime': start_time.isoformat(),
-            'externalId': event.get('event-id'),
+            'externalId': 'ruv_' + event.get('event-id'),
             # End time left empty as we want this slot to last until the next.
             'videoId': video_id
         })
