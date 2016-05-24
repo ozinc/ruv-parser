@@ -151,8 +151,7 @@ def import_epg(url):
             'title': event.title.text,
             'externalId': 'ruv_' + event.get('event-id'),
             'collectionId': collection_id,
-            'published': True,
-            'playableFrom': start_time.isoformat(),
+            'published': True
         }
 
         # Include poster
