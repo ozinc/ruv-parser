@@ -140,7 +140,7 @@ def import_epg(url):
             metadata['date'] = start_time.isoformat()
 
         # For now we assume the same rights as 'vod' type. This may change
-        rights = soup.find('rights', type='vod')
+        rights = event.find('rights', type='vod')
         availability_time = None
 
         if rights is not None and rights.get('action') == 'allowed':
