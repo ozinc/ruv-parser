@@ -78,7 +78,8 @@ def import_as_run():
                 upsert_slot(CoreObject('slot', updated_slot), vodify='true')
 
 def import_epg(url):
-    log.info('importing EPG from: ruv')
+    station = 'ruv' # TODO: Make this configurable
+    log.info('importing EPG from: {0}'.format(station))
     stdin = sys.stdin.buffer.read()
     soup = bs.BeautifulSoup(stdin, 'xml')
     events = soup.findAll('event')
