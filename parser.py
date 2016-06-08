@@ -78,11 +78,23 @@ def import_as_run():
                 upsert_slot(CoreObject('slot', updated_slot), vodify='true')
 
 def import_epg(url):
-    log.info('importing EPG from: ruv')
+    station = 'ruv' # TODO: Make this configurable
+    log.info('importing EPG from: {0}'.format(station))
     stdin = sys.stdin.buffer.read()
     soup = bs.BeautifulSoup(stdin, 'xml')
     events = soup.findAll('event')
     log.info('found %d scheduled items', len(events))
+
+    # Fetch the primary stream for this channel
+    channel_id = api.channel_id
+    stream = api.fetch_primary_stream_for_channel(channel_id)
+    if stream == None:
+        log.info('no stream found for {0} (id: {1})'.format(station, channel_id))
+        sys.exit(-1)
+    stream_id = stream['id']
+    log.info('found streamId {0} for channel {1} (id: {2})'.format(
+        stream_id, station, api.channel_id))
+
     for event in events:
         # Check if the event is associated with a collection
         serie_id = event.get('serie-id')
@@ -176,7 +188,8 @@ def import_epg(url):
             'startTime': start_time.isoformat(),
             'externalId': 'ruv_' + event.get('event-id'),
             # End time left empty as we want this slot to last until the next.
-            'videoId': video_id
+            'videoId': video_id,
+            'streamId': stream_id
         })
         upsert_slot(slot)
 
