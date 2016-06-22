@@ -77,7 +77,7 @@ def import_as_run():
                 updated_slot['metadata']['ended'] = end_time
                 upsert_slot(CoreObject('slot', updated_slot), vodify='true')
 
-def import_epg(url):
+def import_epg():
     station = 'ruv' # TODO: Make this configurable
     log.info('importing EPG from: {0}'.format(station))
     stdin = sys.stdin.buffer.read()
@@ -230,10 +230,7 @@ if __name__ == '__main__':
         log.info('verbose mode on')
     # Do this thing!
     if args.action == 'epg':
-        for i in range(7):
-            date = arrow.now().replace(days=i)
-            url = EPG_URL + str(date.date())
-            import_epg(url)
+        import_epg()
     elif args.action == 'asrun':
         import_as_run()
     else:
