@@ -77,23 +77,13 @@ def import_as_run():
                 updated_slot['metadata']['ended'] = end_time
                 upsert_slot(CoreObject('slot', updated_slot), vodify='true')
 
-def import_epg():
+def import_epg(stream_id):
     station = 'ruv' # TODO: Make this configurable
     log.info('importing EPG from: {0}'.format(station))
     stdin = sys.stdin.buffer.read()
     soup = bs.BeautifulSoup(stdin, 'xml')
     events = soup.findAll('event')
     log.info('found %d scheduled items', len(events))
-
-    # Fetch the primary stream for this channel
-    channel_id = api.channel_id
-    stream = api.fetch_primary_stream_for_channel(channel_id)
-    if stream == None:
-        log.info('no stream found for {0} (id: {1})'.format(station, channel_id))
-        sys.exit(-1)
-    stream_id = stream['id']
-    log.info('found streamId {0} for channel {1} (id: {2})'.format(
-        stream_id, station, api.channel_id))
 
     for event in events:
         # Check if the event is associated with a collection
@@ -216,12 +206,12 @@ def upsert_object(obj, **kwargs):
         new_obj = getattr(api, 'update_{}'.format(obj.type))(obj.properties, **kwargs)
         return new_obj['id']
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Import EPG and As-Run data from RUV to OZ')
     parser.add_argument('-v', help='turn on verbose mode', action='store_true')
     parser.add_argument('action', help='epg or asrun')
     parser.add_argument('channel', help='The ID of the channel being imported to')
+    parser.add_argument('stream', help='The ID of the stream being imported to')
     parser.add_argument('station', help='The external id of the service in RUV\'s system')
     args = parser.parse_args()
     api.channel_id = args.channel
@@ -230,7 +220,7 @@ if __name__ == '__main__':
         log.info('verbose mode on')
     # Do this thing!
     if args.action == 'epg':
-        import_epg()
+        import_epg(args.stream)
     elif args.action == 'asrun':
         import_as_run()
     else:
