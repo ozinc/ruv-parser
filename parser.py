@@ -143,10 +143,11 @@ def import_epg(stream_id):
 
         # For now we assume the same rights as 'vod' type. This may change
         rights = event.find('rights', type='vod')
-        availability_time = None
 
+        availability_time = arrow.get(event.get('start-time'))
         if rights is not None and rights.get('action') == 'allowed':
             availability_time = arrow.get(rights.get('expires'))
+
         videoProps = {
             'sourceType': 'stream',
             'contentType': content_type,
