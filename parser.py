@@ -141,10 +141,12 @@ def import_epg(stream_id):
         if content_type == 'news':
             metadata['date'] = start_time.isoformat()
 
-        # For now we assume the same rights as 'vod' type. This may change
+        # For now we assume the same rights as 'vod' type
         rights = event.find('rights', type='vod')
 
-        availability_time = arrow.get(event.get('start-time'))
+        # We default to having the expiry at the end of the event,
+        # but if we see an "allowed vod"-right we use that expiry.
+        availability_time = arrow.get(event.get('end-time'))
         if rights is not None and rights.get('action') == 'allowed':
             availability_time = arrow.get(rights.get('expires'))
 
