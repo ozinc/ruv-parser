@@ -148,13 +148,21 @@ def import_epg(stream_id):
         if rights is not None and rights.get('action') == 'allowed':
             availability_time = arrow.get(rights.get('expires'))
 
+        # Default to IS geo-restrictions, but opt into no restrictions if they
+        # EPG allows it.
+        playback_countries = ['IS']
+        stream = event.find('stream')
+        if stream is not None and stream.get('scope') == 'global':
+            playback_countries = ['GLOBAL']
+
         videoProps = {
             'sourceType': 'stream',
             'contentType': content_type,
             'title': event.title.text,
             'externalId': 'ruv_' + event.get('event-id'),
             'collectionId': collection_id,
-            'published': True
+            'published': True,
+            'playbackCountries': playback_countries
         }
 
         # Include poster
