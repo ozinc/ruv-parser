@@ -15,8 +15,6 @@ import sys
 
 from oz import OZCoreApi
 
-EPG_URL    = 'http://muninn.ruv.is/files/rs/ruv/'
-AS_RUN_URL = 'http://muninn.ruv.is/files/rstiming/ruv/'
 RUV_CATEGORY_MOVIE_VALUE = '7'
 RUV_CATEGORY_NEWS_VALUE = '3'
 RUV_CATEGORY_SPORT_VALUE = '5'
