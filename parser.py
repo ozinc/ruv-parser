@@ -84,11 +84,17 @@ def import_epg(stream_id):
     log.info('found %d scheduled items', len(events))
 
     for event in events:
-        # Check if the event is associated with a collection
-        serie_id = event.get('serie-id')
-        collection_id = None
-        content_type = 'episode'
+        # Determine IDs and whether this is an episode or a single
+        video_external_id = event.reference.get('material')
+        collection_external_id = event.reference.get('group')
+        is_episode = event.episode.get('multiple-episodes') == 'yes'
 
+        log.info('video_external_id: {0}'.format(video_external_id))
+        log.info('episode: {0}'.format(str(event.episode)))
+        log.info('is_episode? {0}'.format(str(is_episode)))
+
+        # Category
+        content_type = 'episode'
         if event.category:
             category_id = event.category.get('value')
             if category_id == RUV_CATEGORY_MOVIE_VALUE:
@@ -96,30 +102,24 @@ def import_epg(stream_id):
             elif category_id in [RUV_CATEGORY_NEWS_VALUE, RUV_CATEGORY_SPORT_VALUE]:
                 content_type = 'news'
 
-        # NOTE: Okay so apparently stuff like movies will often also have a serie_id
-        # in RUVs EPG data and that's we have do the following to decide whether a
-        # event belongs to a serie or not:
-        is_episode = serie_id and content_type != 'movie'
-
+        # Collection
+        collection_id = None
         if is_episode:
-            # Populate the collection object.
-            collectionProps = {
-                'externalId': 'ruv_' + serie_id,
-                'type': 'series', # TODO: You shouldn't need to do this.
+            # Populate the collection object
+            collection_props = {
+                'externalId': 'ruv_' + collection_external_id,
+                'type': 'general',
                 'name': event.title.text
             }
 
-            # RUV _sometimes_ has a "details" object associated with a "event" (schedule item)
+            # RUV sometimes has a "details" object associated with a "event" (schedule item)
             # which enlists some info on the series which this episode belongs to.
-            series_details = event.findAll('details', { 'id': serie_id })
+            series_details = event.findAll('details', { 'id': event.get('serie-id') })
             if len(series_details) > 0:
-                collectionProps['name'] = series_details[0].find('series-title').text
-                collectionProps['description'] = series_details[0].find('series-description').text
+                collection_props['name'] = series_details[0].find('series-title').text
+                collection_props['description'] = series_details[0].find('series-description').text
 
-            # TODO: Deal with the image.
-
-            collection = CoreObject('collection', collectionProps);
-
+            collection = CoreObject('collection', collection_props);
             collection_id = upsert_collection(collection)
 
         # Populate the metadata object.
@@ -129,7 +129,8 @@ def import_epg(stream_id):
 
         # Populate the video object
         if is_episode:
-            # So apparently RUV don't have any notion of season numbers in their EPG data.
+            # So apparently RUV don't have any notion of season numbers in their EPG data,
+            # according to a tech guy from RUV they are adding this though
             #metadata['seasonNumber'] = ?
             metadata['episodeNumber'] = int(event.episode.get('number'))
 
