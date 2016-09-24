@@ -85,8 +85,9 @@ def import_epg(stream_id):
 
     for event in events:
         # Determine IDs and whether this is an episode or a single
-        video_external_id = event.reference.get('material')
-        collection_external_id = event.reference.get('group')
+        video_external_id = 'ruv-' + event.reference.get('material')
+        collection_external_id = 'ruv-' + event.reference.get('group')
+        slot_external_id = 'ruv-' + event.get('event-id')
         is_episode = event.episode.get('multiple-episodes') == 'yes'
 
         log.info('video_external_id: {0}'.format(video_external_id))
@@ -107,7 +108,7 @@ def import_epg(stream_id):
         if is_episode:
             # Populate the collection object
             collection_props = {
-                'externalId': 'ruv-' + collection_external_id,
+                'externalId': collection_external_id,
                 'type': 'general',
                 'name': event.title.text
             }
@@ -157,10 +158,10 @@ def import_epg(stream_id):
             playback_countries = ['GLOBAL']
 
         video_props = {
+            'externalId': video_external_id,
             'sourceType': 'stream',
             'contentType': content_type,
             'title': event.title.text,
-            'externalId': 'ruv-' + video_external_id,
             'collectionId': collection_id,
             'published': True,
             'playbackCountries': playback_countries
@@ -184,9 +185,9 @@ def import_epg(stream_id):
         # Create a slot to schedule the video to be played
         # at the specified time
         slot = CoreObject('slot', {
+            'externalId': slot_external_id,
             'type': 'regular',
             'startTime': start_time.isoformat(),
-            'externalId': 'ruv-' + ,
             # End time left empty as we want this slot to last until the next.
             'videoId': video_id,
             'streamId': stream_id
