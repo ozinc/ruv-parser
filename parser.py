@@ -107,7 +107,7 @@ def import_epg(stream_id):
         if is_episode:
             # Populate the collection object
             collection_props = {
-                'externalId': 'ruv_' + collection_external_id,
+                'externalId': 'ruv-' + collection_external_id,
                 'type': 'general',
                 'name': event.title.text
             }
@@ -122,7 +122,7 @@ def import_epg(stream_id):
             collection = CoreObject('collection', collection_props);
             collection_id = upsert_collection(collection)
 
-        # Populate the metadata object.
+        # Populate the metadata object
         metadata = {}
         if event.description != None and len(event.description.text) > 0:
             metadata['description'] = event.description.text
@@ -156,11 +156,11 @@ def import_epg(stream_id):
         if stream is not None and stream.get('scope') == 'global':
             playback_countries = ['GLOBAL']
 
-        videoProps = {
+        video_props = {
             'sourceType': 'stream',
             'contentType': content_type,
             'title': event.title.text,
-            'externalId': 'ruv_' + event.get('event-id'),
+            'externalId': 'ruv-' + video_external_id,
             'collectionId': collection_id,
             'published': True,
             'playbackCountries': playback_countries
@@ -168,17 +168,17 @@ def import_epg(stream_id):
 
         # Include poster
         if event.image:
-            videoProps['posterUrl'] = event.image.text
+            video_props['posterUrl'] = event.image.text
 
         if availability_time:
-            videoProps['playableUntil'] = availability_time.isoformat()
+            video_props['playableUntil'] = availability_time.isoformat()
 
         # Only attach the metadata field if we have some metadata.
         if len(metadata) > 0:
-            videoProps['metadata'] = metadata
+            video_props['metadata'] = metadata
 
         # Create the video:
-        video = CoreObject('video', videoProps)
+        video = CoreObject('video', video_props)
         video_id = upsert_video(video)
 
         # Create a slot to schedule the video to be played
@@ -186,7 +186,7 @@ def import_epg(stream_id):
         slot = CoreObject('slot', {
             'type': 'regular',
             'startTime': start_time.isoformat(),
-            'externalId': 'ruv_' + event.get('event-id'),
+            'externalId': 'ruv-' + ,
             # End time left empty as we want this slot to last until the next.
             'videoId': video_id,
             'streamId': stream_id
