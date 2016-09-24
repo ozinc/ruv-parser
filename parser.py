@@ -43,10 +43,9 @@ def import_as_run():
     log.info('found %d as run items', len(events))
 
     for event in events:
-        # Here we do a PATCH on the slot with the only additional data that we get from RUVs
-        # as run service; the start and end timestamp of the video.
-        # Note that since we only know the "externalId" of the video we first need to fetch it.
-        external_id = 'ruv_' + event.id.text
+        # Here we do a PATCH on the slot with the only additional data that we
+        # get from RUVs as run service; the start and end timestamp of the video
+        external_id = 'ruv-' + event.id.text
         external_slot = api.fetch_slot_by_external_id(external_id, include='video')
         if external_slot is None:
             log.warn('as run slot did not exist: {0}'.format(external_id))
