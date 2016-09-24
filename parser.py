@@ -43,10 +43,9 @@ def import_as_run():
     log.info('found %d as run items', len(events))
 
     for event in events:
-        # Here we do a PATCH on the slot with the only additional data that we get from RUVs
-        # as run service; the start and end timestamp of the video.
-        # Note that since we only know the "externalId" of the video we first need to fetch it.
-        external_id = 'ruv_' + event.id.text
+        # Here we do a PATCH on the slot with the only additional data that we
+        # get from RUVs as run service; the start and end timestamp of the video
+        external_id = 'ruv-' + event.id.text
         external_slot = api.fetch_slot_by_external_id(external_id, include='video')
         if external_slot is None:
             log.warn('as run slot did not exist: {0}'.format(external_id))
@@ -84,11 +83,18 @@ def import_epg(stream_id):
     log.info('found %d scheduled items', len(events))
 
     for event in events:
-        # Check if the event is associated with a collection
-        serie_id = event.get('serie-id')
-        collection_id = None
-        content_type = 'episode'
+        # Determine IDs and whether this is an episode or a single
+        video_external_id = 'ruv-' + event.reference.get('material')
+        collection_external_id = 'ruv-' + event.reference.get('group')
+        slot_external_id = 'ruv-' + event.get('event-id')
+        is_episode = event.episode.get('multiple-episodes') == 'yes'
 
+        log.info('video_external_id: {0}'.format(video_external_id))
+        log.info('episode: {0}'.format(str(event.episode)))
+        log.info('is_episode? {0}'.format(str(is_episode)))
+
+        # Category
+        content_type = 'episode'
         if event.category:
             category_id = event.category.get('value')
             if category_id == RUV_CATEGORY_MOVIE_VALUE:
@@ -96,40 +102,35 @@ def import_epg(stream_id):
             elif category_id in [RUV_CATEGORY_NEWS_VALUE, RUV_CATEGORY_SPORT_VALUE]:
                 content_type = 'news'
 
-        # NOTE: Okay so apparently stuff like movies will often also have a serie_id
-        # in RUVs EPG data and that's we have do the following to decide whether a
-        # event belongs to a serie or not:
-        is_episode = serie_id and content_type != 'movie'
-
+        # Collection
+        collection_id = None
         if is_episode:
-            # Populate the collection object.
-            collectionProps = {
-                'externalId': 'ruv_' + serie_id,
-                'type': 'series', # TODO: You shouldn't need to do this.
+            # Populate the collection object
+            collection_props = {
+                'externalId': collection_external_id,
+                'type': 'general',
                 'name': event.title.text
             }
 
-            # RUV _sometimes_ has a "details" object associated with a "event" (schedule item)
+            # RUV sometimes has a "details" object associated with a "event" (schedule item)
             # which enlists some info on the series which this episode belongs to.
-            series_details = event.findAll('details', { 'id': serie_id })
+            series_details = event.findAll('details', { 'id': event.get('serie-id') })
             if len(series_details) > 0:
-                collectionProps['name'] = series_details[0].find('series-title').text
-                collectionProps['description'] = series_details[0].find('series-description').text
+                collection_props['name'] = series_details[0].find('series-title').text
+                collection_props['description'] = series_details[0].find('series-description').text
 
-            # TODO: Deal with the image.
-
-            collection = CoreObject('collection', collectionProps);
-
+            collection = CoreObject('collection', collection_props);
             collection_id = upsert_collection(collection)
 
-        # Populate the metadata object.
+        # Populate the metadata object
         metadata = {}
         if event.description != None and len(event.description.text) > 0:
             metadata['description'] = event.description.text
 
         # Populate the video object
         if is_episode:
-            # So apparently RUV don't have any notion of season numbers in their EPG data.
+            # So apparently RUV don't have any notion of season numbers in their EPG data,
+            # according to a tech guy from RUV they are adding this though
             #metadata['seasonNumber'] = ?
             metadata['episodeNumber'] = int(event.episode.get('number'))
 
@@ -155,11 +156,11 @@ def import_epg(stream_id):
         if stream is not None and stream.get('scope') == 'global':
             playback_countries = ['GLOBAL']
 
-        videoProps = {
+        video_props = {
+            'externalId': video_external_id,
             'sourceType': 'stream',
             'contentType': content_type,
             'title': event.title.text,
-            'externalId': 'ruv_' + event.get('event-id'),
             'collectionId': collection_id,
             'published': True,
             'playbackCountries': playback_countries
@@ -167,25 +168,25 @@ def import_epg(stream_id):
 
         # Include poster
         if event.image:
-            videoProps['posterUrl'] = event.image.text
+            video_props['posterUrl'] = event.image.text
 
         if availability_time:
-            videoProps['playableUntil'] = availability_time.isoformat()
+            video_props['playableUntil'] = availability_time.isoformat()
 
         # Only attach the metadata field if we have some metadata.
         if len(metadata) > 0:
-            videoProps['metadata'] = metadata
+            video_props['metadata'] = metadata
 
         # Create the video:
-        video = CoreObject('video', videoProps)
+        video = CoreObject('video', video_props)
         video_id = upsert_video(video)
 
         # Create a slot to schedule the video to be played
         # at the specified time
         slot = CoreObject('slot', {
+            'externalId': slot_external_id,
             'type': 'regular',
             'startTime': start_time.isoformat(),
-            'externalId': 'ruv_' + event.get('event-id'),
             # End time left empty as we want this slot to last until the next.
             'videoId': video_id,
             'streamId': stream_id
