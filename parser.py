@@ -19,6 +19,14 @@ RUV_CATEGORY_MOVIE_VALUE = '7'
 RUV_CATEGORY_NEWS_VALUE = '3'
 RUV_CATEGORY_SPORT_VALUE = '5'
 
+DEFAULT_COLLECTION_ID = 'f4003614-238c-4835-b676-cbae4ee52299' # Þættir
+MOVIE_COLLECTION_ID = '74ea2aa5-44a1-4114-aeea-f818bf7f7d21' # Kvikmyndir
+CATEGORY_COLLECTION_MAPPING = {
+    '1': '13a8d77b-0386-4319-9c12-633ff54f8c53', # Börn -> Barnaefni
+    '3': '44bc1184-b669-4619-828b-70576c62df4a', # Fréttatengt -> Fréttir
+    '5': '79364670-48e4-46c8-8a1f-896f41117536' # Íþróttir -> Íþróttir
+}
+
 username = os.environ['OZ_USERNAME']
 password = os.environ['OZ_PASSWORD']
 
@@ -105,11 +113,22 @@ def import_epg(stream_id):
         # Collection
         collection_id = None
         if is_episode:
+            # Determine parent collection of this collection
+            parent_id = DEFAULT_COLLECTION_ID
+            if event.category:
+                category_value = event.category.get('value')
+                if category_value in CATEGORY_COLLECTION_MAPPING:
+                    parent_id = CATEGORY_COLLECTION_MAPPING[category_value]
+                log.info('cat -> coll: {0} -> {1}'.format(category_value, parent_id))
+            else:
+                log.info('no category metadata, setting parent coll to default')
+
             # Populate the collection object
             collection_props = {
                 'externalId': collection_external_id,
                 'type': 'general',
-                'name': event.title.text
+                'name': event.title.text,
+                'parentId': parent_id
             }
 
             # RUV sometimes has a "details" object associated with a "event" (schedule item)
@@ -121,6 +140,10 @@ def import_epg(stream_id):
 
             collection = CoreObject('collection', collection_props);
             collection_id = upsert_collection(collection)
+
+        # If this is a movie; put it under the "Kvikmyndir" collection
+        if content_type == 'movie':
+            collection_id = MOVIE_COLLECTION_ID
 
         # Populate the metadata object
         metadata = {}
